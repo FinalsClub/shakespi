@@ -7,7 +7,13 @@
 </body>
 
 <template name="hello">
-  <h1>Hello World!</h1>
+  <h2>Hello World!</h2>
   {{greeting}}
+  <h1>Lines By Romeo</h1>
+  <ul>
+  {{#each linesByRomeo}}
+    <li>{{line_text}}</li>
+  {{/each}}
+  </ul>
   <input type="button" value="Click" />
 </template>
