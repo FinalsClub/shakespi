@@ -1,1 +1,1 @@
-Plays = new Meteor.Collection('plays');
+Lines = new Meteor.Collection('lines');

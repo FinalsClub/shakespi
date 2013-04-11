@@ -40,9 +40,9 @@ var fns = [
 
 Meteor.startup(function() {
   console.log('Server is starting');
-  console.log('Total Plays:', Plays.find({}).count());
+  console.log('Total Lines:', Lines.find({}).count());
 
-  if (Plays.find({}).count() === 0) {
+  if (Lines.find({}).count() === 0) {
     for (var i = 0; i < fns.length; i++) {
 
       var filename = fns[i];
@@ -51,9 +51,14 @@ Meteor.startup(function() {
 
         if (error) { return console.log(error); }
 
-        var object = response.data;
-        Plays.insert(object);
-        console.log('Inserted:', object.title);
+        var lines = response.data;
+        // iterate over array of shakespeare line json objects
+        for (var j = 0; j < lines.length; j++) {
+          Lines.insert(lines[j]);
+        }
+        response.data = response.data[0]; // HACK: making a dangerous assumption 
+        response.content = '<hidden>';
+        console.log("Got file:", response);
       }); // Meteor.get
     } // iterate over file names 
   } // if 
