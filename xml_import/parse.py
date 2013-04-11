@@ -1,46 +1,40 @@
 import xml
-
 import xml.etree.ElementTree as ET
-tree = ET.parse('romeo_and_juliet_moby.xml')
-root = tree.getroot()
 
 
 def list_of_text(element, tag):
     """Find all children of element with the specified tag, 
     Return a list of the text of each element"""
-    return [e.text for e in element.findall(tag)]
+    texts = []
+    for e in element.findall(tag):
+        if e.text:
+            texts.append(e.text)
+    return texts
 
 
 class ShakespeareParser:
     """namespace for static methods. Each method operates on an 
     certain type of element
     """
+    def __init__(self):
+        self.line_count = 0
+        self.lines = []
 
-    @staticmethod
-    def parse_line(line, play):
-        # TODO: set global line count state
+    def parse_play(self, xml_filename):
 
-        pass
+        tree = ET.parse(xml_filename)
+        root = tree.getroot()
+        play_context = {
+            'play_title_long': root.find('TITLE').text,
+            'play_title': root.find('PLAYSUBT').text,
+        }
+        acts = root.findall('ACT')
 
-    @staticmethod
-    def parse_speech(speech, play_context):
-        """
-        <!ELEMENT SPEECH   (SPEAKER+, (LINE | STAGEDIR | SUBHEAD)+)>
-        """
-        if speech.tag != 'SPEECH': 
-            raise Exception('Element is not a speech element', speech)
+        for i, act in enumerate(acts):
+            play_context["act_index"] = i + 1
+            self.parse_act(act, play_context)
 
-        # Rarely a speech will be two characters in unison
-        speakers = list_of_text(speech, 'SPEAKER')
-        play_context['speakers'] = ', '.join(speakers)
-        play_context['speaker_list'] = speakers
-
-        for e in speech:
-            if e.tag == 'LINE':
-                ShakespeareParser.parse_line(a, play_context)
-
-    @staticmethod
-    def parse_act(act, play_context):
+    def parse_act(self, act, play_context):
         """
         <!ELEMENT ACT      (TITLE, SUBTITLE*, PROLOGUE?, SCENE+, EPILOGUE?)>
 
@@ -80,10 +74,9 @@ class ShakespeareParser:
                 play_context['scene_index'] = i
             else:
                 play_context['scene_index'] = i + 1
-            parse_scene(scene, play_context)
+            self.parse_scene(scene, play_context)
 
-    @staticmethod
-    def parse_scene(scene, play_context):
+    def parse_scene(self, scene, play_context):
         """
         Parse a SCENE, PROLOGUE, or EPILOGUE
         <!ELEMENT SCENE    (TITLE, SUBTITLE*, (SPEECH | STAGEDIR | SUBHEAD)+)>
@@ -100,28 +93,40 @@ class ShakespeareParser:
             if tag in ('STAGEDIR', 'SUBHEAD'):
                 pass
             elif tag == 'SPEECH':
-                ShakespeareParser.parse_speech(e, play_context)
+                self.parse_speech(e, play_context)
 
-        return events
+    def parse_speech(self, speech, play_context):
+        """
+        <!ELEMENT SPEECH   (SPEAKER+, (LINE | STAGEDIR | SUBHEAD)+)>
+        """
+        if speech.tag != 'SPEECH': 
+            raise Exception('Element is not a speech element', speech)
 
-    @staticmethod
-    def parse_play(play_xml):
+        # Rarely a speech will be two characters in unison
+        speakers = list_of_text(speech, 'SPEAKER')
+        play_context['speaker_text'] = ', '.join(speakers)
+        play_context['speaker_list'] = speakers
 
-        tree = ET.parse(play_xml)
-        root = tree.getroot()
-        play_context = {
-            play_title_long: root.find('TITLE').text,
-            play_title: root.find('PLAYSUBT').text,
-        }
-        acts = root.findall('ACT')
+        for e in speech:
+            if e.tag == 'LINE':
+                self.parse_line(e, play_context)
 
-        for i, act in enumerate(acts):
-            play_context["act_index"] = i + 1
-            ShakespeareParser.parse_act(act, play_context)
+    def parse_line(self, line, play_context):
+        # TODO: set global line count state
+        if line.tag != 'LINE':
+            raise Exception('Element is not a LINE element', line)
 
-#a = root.find('ACT')
-#d = ShakespeareParser.parse_act(a)
+        line_context = dict(play_context)
+        line_context['line_text'] = line.text
+        line_context['play_line_count'] = self.line_count
+        self.line_count += 1
+        self.lines.append(line_context)
 
+    
+
+if __name__ == '__main__':
+    p = ShakespeareParser()
+    p.parse_play('romeo_and_juliet_moby.xml')
 
 
 
