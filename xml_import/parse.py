@@ -13,14 +13,18 @@ def list_of_text(element, tag):
 
 
 class ShakespeareParser:
-    """namespace for static methods. Each method operates on an 
-    certain type of element
+    """
+    Instantiate me, then parse_play(xml_filename) to populate
+    self.lines
     """
     def __init__(self):
         self.line_count = 0
         self.lines = []
 
     def parse_play(self, xml_filename):
+        """
+        <!ELEMENT PLAY (TITLE, FM, PERSONAE, SCNDESCR, PLAYSUBT, INDUCT?, PROLOGUE?, ACT+, EPILOGUE?)>
+        """
 
         tree = ET.parse(xml_filename)
         root = tree.getroot()
@@ -112,12 +116,14 @@ class ShakespeareParser:
                 self.parse_line(e, play_context)
 
     def parse_line(self, line, play_context):
-        # TODO: set global line count state
+        """
+        <!ELEMENT LINE     (#PCDATA | STAGEDIR)*>
+        """
         if line.tag != 'LINE':
             raise Exception('Element is not a LINE element', line)
 
         line_context = dict(play_context)
-        line_context['line_text'] = line.text
+        line_context['line_text'] = line.text # BUG: doesn't handle case when stage dir preceeds text
         line_context['play_line_count'] = self.line_count
         self.line_count += 1
         self.lines.append(line_context)
