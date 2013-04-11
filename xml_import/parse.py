@@ -17,20 +17,30 @@ class ShakespeareParser:
     """
 
     @staticmethod
-    def speech(speech):
+    def parse_line(line, play):
+        # TODO: set global line count state
+
+        pass
+
+    @staticmethod
+    def parse_speech(speech, play_context):
         """
         <!ELEMENT SPEECH   (SPEAKER+, (LINE | STAGEDIR | SUBHEAD)+)>
         """
         if speech.tag != 'SPEECH': 
             raise Exception('Element is not a speech element', speech)
-        d = {
-            'speaker': speech.find('SPEAKER').text,
-            'lines': list_of_text(speech, 'LINE')
-        }
-        return d
+
+        # Rarely a speech will be two characters in unison
+        speakers = list_of_text(speech, 'SPEAKER')
+        play_context['speakers'] = ', '.join(speakers)
+        play_context['speaker_list'] = speakers
+
+        for e in speech:
+            if e.tag == 'LINE':
+                ShakespeareParser.parse_line(a, play_context)
 
     @staticmethod
-    def act(act):
+    def parse_act(act, play_context):
         """
         <!ELEMENT ACT      (TITLE, SUBTITLE*, PROLOGUE?, SCENE+, EPILOGUE?)>
 
@@ -41,55 +51,76 @@ class ShakespeareParser:
             one or more SCENE
             one optional EPILOGUE
         """
+        print 'parse_act:', play_context
+
         if act.tag != 'ACT':
             raise Exception('Element is not an ACT Element', act)
 
         # 'ACT I', 'ACT II', etc
-        act_name = act.find('TITLE').text
+        play_context['act_title']= act.find('TITLE').text
 
         # most acts don't have subtitles
         #subtitles = list_of_text(act, 'SUBTITLE')
 
         scenes = []
 
-        for e in act:
-            if e.tag == 'SCENE':
-                scenes.append(ShakespeareParser.scene(e))
+        prologue = act.find('PROLOGUE')
+        if prologue:
+            scenes.append(prologue)
 
-        d = {
-            'name': act_name,
-            'scenes': scenes
-        }
+        scenes = scenes + act.findall('SCENE')
 
-        return d
+        epilogue = act.find('EPILOGUE')
+        if epilogue: 
+            scenes.append(epilogue)
+
+        for i, scene in enumerate(scenes):
+            # If scene has a prologue index beginning at 0
+            if prologue: 
+                play_context['scene_index'] = i
+            else:
+                play_context['scene_index'] = i + 1
+            parse_scene(scene, play_context)
 
     @staticmethod
-    def scene(scene):
-        """ <!ELEMENT SCENE    (TITLE, SUBTITLE*, (SPEECH | STAGEDIR | SUBHEAD)+)>
+    def parse_scene(scene, play_context):
+        """
+        Parse a SCENE, PROLOGUE, or EPILOGUE
+        <!ELEMENT SCENE    (TITLE, SUBTITLE*, (SPEECH | STAGEDIR | SUBHEAD)+)>
         subhead and stagedir have .text only
         """
-        if scene.tag != 'SCENE':
-            raise Exception('Element is not a SCENE element')
+        if scene.tag not in ('SCENE', 'PROLOGUE', 'EPILOGUE'):
+            raise Exception('Element is not a SCENE, PROLOGUE, or EPILOGUE element')
 
         # ex "SCENE I.  Verona. A public place."
-        scene_title = scene.find('TITLE').text
-
-        events = []
+        play_context['scene_title'] = scene.find('TITLE').text
 
         for e in scene:
             tag = e.tag
             if tag in ('STAGEDIR', 'SUBHEAD'):
-                events.append({
-                    'type':tag,
-                    'content':e.text})
+                pass
             elif tag == 'SPEECH':
-                events.append(ShakespeareParser.speech(e))
+                ShakespeareParser.parse_speech(e, play_context)
 
         return events
 
+    @staticmethod
+    def parse_play(play_xml):
 
-a = root.find('ACT')
-d = ShakespeareParser.act(a)
+        tree = ET.parse(play_xml)
+        root = tree.getroot()
+        play_context = {
+            play_title_long: root.find('TITLE').text,
+            play_title: root.find('PLAYSUBT').text,
+        }
+        acts = root.findall('ACT')
+
+        for i, act in enumerate(acts):
+            play_context["act_index"] = i + 1
+            ShakespeareParser.parse_act(act, play_context)
+
+#a = root.find('ACT')
+#d = ShakespeareParser.parse_act(a)
 
 
 
