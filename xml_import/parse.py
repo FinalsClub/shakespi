@@ -131,6 +131,19 @@ class ShakespeareParser:
     
 
 if __name__ == '__main__':
+    a = raw_input('Parse all .xml files in dir, overwriting .json files (y/n)?')
+    if a.lower()== 'y':
+        import os, json
+        xml_filenames = [fn for fn in os.listdir('.') if fn.lower().endswith('.xml')]
+        print xml_filenames
+        for fn in xml_filenames:
+            p = ShakespeareParser()
+            p.parse_play(fn)
+            json_filename = fn[:-4] + '.json'
+            with open(json_filename, 'w') as f:
+                json.dump(p.lines, f)
+else:
+    # for testing
     p = ShakespeareParser()
     p.parse_play('romeo_and_juliet_moby.xml')
 
